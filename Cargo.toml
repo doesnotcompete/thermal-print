@@ -6,7 +6,7 @@ description = "An almost fully featured, no-std-compatible embedded-hal driver f
 license = "GPL-3.0+"
 readme = "README.md"
 documentation = "https://docs.rs/thermal-print"
-repository = "https://github.com/doesnotcompete/thermal-print"
+repository = "https://gitlab.com/doesnotcompete/thermal-print"
 categories = ["embedded", "hardware-support", "no-std"]
 keywords = ["thermal-printer", "embedded-hal-driver", "no-std", "serial", "adafruit"]
 
