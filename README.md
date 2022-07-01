@@ -10,7 +10,7 @@
 
  - [x] text formatting (such as justification, selecting a print mode, and choosing fonts),
  - [x] printing barcodes,
- - [x] bitmap printing (via the `tinybmp` crate, on platforms possessing a dynamic allocator).
+ - [x] bitmap printing (via the `tinybmp` crate).
 
 ## Usage
 **Minimum Supported Rust Version:** 1.56.0
@@ -26,7 +26,7 @@ Now you can bring the crate into scope:
 use thermal_print::*
 ```
 
-Bitmap printing depends on the [TinyBMP](https://crates.io/crates/tinybmp) crate. See the example on [Printing Bitmaps] below.
+Bitmap printing depends on the [TinyBMP](https://crates.io/crates/tinybmp) crate. See the example on printing bitmaps below.
 
 ## Examples
 ### Setup, Formatting, and Printing Text

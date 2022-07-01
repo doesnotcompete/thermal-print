@@ -12,19 +12,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//! Support for the CSN-A2 thermal printer via `embedded_hal`.
+//! Support for the CSN-A2 thermal printer via [`embedded_hal`]. This crate also supports bitmap printing
+//! via [`tinybmp`].
 //!
 //! # Usage
-//! Create a new [`Printer`] on a serial port on your platform and write text via the implemented `core::fmt::Write` trait. You can use the `write!` and `writeln!` macros to accomplish this.
+//! Create a new [`Printer`] on a serial port on your platform and write text via the implemented [`core::fmt::Write`] trait. You can use the [`write!`] and [`writeln!`] macros to accomplish this.
 //!
 //! See the [`Printer`] struct documentation for advanced capabilities, such as printing barcodes and
 //! bitmaps.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-#[cfg(not(feature = "alloc"))]
+#[cfg(not(feature = "std"))]
 extern crate alloc;
 
+#[cfg(not(feature = "std"))]
 use alloc::format;
 use bitvec::prelude::*;
 use core::fmt::{Arguments, Error, Write};
@@ -48,13 +50,17 @@ const MODE_SEQUENCE: [u8; 2] = [ESC, MARK];
 const MODE_ORDER: [[u8; 2]; 3] = [[GS, 0x42], [ESC, 0x7B], [ESC, 0x45]];
 
 const TAB_WIDTH: u8 = 4;
-const PIXEL_COLOR_CUTOFF: u32 = 0x0000FFFF;
+/// Determines a cutoff value each pixel in a [`RawBmp`] is compared against. Pixels below this
+/// value get printed as a dot, pixels above not.
+pub const PIXEL_COLOR_CUTOFF: u32 = 0x0000FFFF;
 const BAUDRATE: u64 = 19_200;
 /// Maximum number of horizontal dots the printer can handle
 const DOT_WIDTH: u32 = 384;
 /// Time estimate for the printer to process one byte of data
 const BYTE_TIME_MICROS: u64 = ((11 * 1000000) + (BAUDRATE / 2)) / BAUDRATE;
 
+/// Specifies the used internal printer font. User-defined fonts are currently not supported by
+/// this driver.
 #[derive(Clone, Copy)]
 pub enum Font {
     FontA,
@@ -67,6 +73,7 @@ impl Default for Font {
     }
 }
 
+/// Determines whether text is aligned left, center, or right.
 pub enum Justification {
     Left,
     Center,
@@ -79,6 +86,7 @@ impl Default for Justification {
     }
 }
 
+/// Sets no, normal, or thick underlining.
 pub enum Underline {
     None,
     Normal,
@@ -115,6 +123,7 @@ impl Default for RasterBitImageMode {
     }
 }
 
+/// Determines the used international character set. Default: `USA`.
 #[derive(IntoPrimitive)]
 #[repr(u8)]
 pub enum CharacterSet {
@@ -142,6 +151,7 @@ impl Default for CharacterSet {
     }
 }
 
+/// Determines the used code page. Default: `CP437`.
 #[derive(IntoPrimitive)]
 #[repr(u8)]
 pub enum CodeTable {
@@ -197,9 +207,9 @@ impl Default for CodeTable {
     }
 }
 
-/// Defines the barcode system to be used. Some systems are considered binary-level, and some are
-/// multi-level systems, which is important for setting the barcode width. See [`BarcodeWidth`] for
-/// more information.
+/// Defines the barcode system to be used.
+///
+/// Some systems are considered binary-level, and some are multi-level systems, which is important for setting the barcode width. See [`BarcodeWidth`] for more information.
 #[derive(IntoPrimitive)]
 #[repr(u8)]
 pub enum BarCodeSystem {
@@ -242,6 +252,7 @@ pub enum BarCodeSpecialCharacter {
 /// The default is `Width3`.
 ///
 /// | Width     | Module Width (mm) for multi-level barcode | Thin Element (mm) for binary-level | Thick Element (mm) for binary-level |
+/// |-----------|-------------------------------------------|------------------------------------|-------------------------------------|
 /// | `Width2`  | 0.250                                     | 0.250                              | 0.625                               |
 /// | `Width3`  | 0.375                                     | 0.375                              | 1.000                               |
 /// | `Width4`  | 0.560                                     | 0.560                              | 1.250                               |
@@ -260,19 +271,32 @@ pub enum BarcodeWidth {
     Width6 = 6,
 }
 
+/// Configures print options such as the font used, white-on-black, upside-down or bold printing,
+/// as well as double-width, double-height and strikethrough modes via individual `bool` flags.
+///
+/// Prefer to use [`PrintModeBuilder`] to construct.
 #[derive(Default, Builder, Clone, Copy)]
 #[builder(default, setter(into), no_std)]
 pub struct PrintMode {
-    font: Font,
-    inverse: bool,
-    upside_down: bool,
-    emph: bool,
-    double_height: bool,
-    double_width: bool,
-    delete_line: bool,
+    /// the [`Font`] to be used
+    pub font: Font,
+    /// enables white-on-black printing
+    pub inverse: bool,
+    /// enables upside-down printing
+    pub upside_down: bool,
+    /// enables bold printing
+    pub emph: bool,
+    /// enables double-height printing mode
+    pub double_height: bool,
+    /// enables double-width printing mode
+    pub double_width: bool,
+    /// enables strikethrough mode
+    pub delete_line: bool,
 }
 
 /// Defines the printer's heat settings.
+///
+/// Prefer to use [`PrintSettingsBuilder`] to construct.
 #[derive(Builder, Clone, Copy)]
 #[builder(default, setter(into), no_std)]
 pub struct PrintSettings {
@@ -344,7 +368,7 @@ impl Into<[u8; 3]> for PrintSettings {
     }
 }
 
-/// A representation of the thermal printer. Implements the `core::fmt::Write` trait for printing
+/// A representation of the thermal printer. Implements the [`core::fmt::Write`] trait for printing
 /// normal text.
 pub struct Printer<Port: serial::Write<u8>, Delay: delay::DelayUs<u32>> {
     pub serial: Port,
@@ -363,6 +387,9 @@ pub struct Printer<Port: serial::Write<u8>, Delay: delay::DelayUs<u32>> {
 
 impl<Port: serial::Write<u8>, Delay: delay::DelayUs<u32>> Printer<Port, Delay> {
     /// Create a new `Printer` with default settings.
+    ///
+    /// You must specify the serial port to be used, as well as a delay implementation of your HAL
+    /// to allow the driver to block while the printer is outputting text.
     pub fn new(serial: Port, delay: Delay) -> Printer<Port, Delay> {
         Printer {
             serial,
@@ -650,6 +677,11 @@ impl<Port: serial::Write<u8>, Delay: delay::DelayUs<u32>> Printer<Port, Delay> {
     /// Set the barcode width to the specified value. See [`BarcodeWidth`] for more information.
     pub fn set_barcode_width(&mut self, width: BarcodeWidth) {
         self.write_bytes(&[GS, 0x77, width.into()]);
+    }
+
+    /// Enable or disable the 90° clockwise rotation mode.
+    pub fn set_rotation_mode(&mut self, rotate: bool) {
+        self.write_bytes(&[ESC, 0x56, rotate.into()]);
     }
 
     /// Feed the paper by exactly one line.

@@ -1,6 +1,6 @@
 [package]
 name = "thermal-print"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "An almost fully featured, no-std-compatible embedded-hal driver for the CSN-A2 thermal printer"
 license = "GPL-3.0+"
