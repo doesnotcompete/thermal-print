@@ -12,8 +12,6 @@ keywords = ["thermal-printer", "embedded-hal-driver", "no-std", "serial", "adafr
 
 [features]
 # Linking against the standard library is disabled by default
-#default = ["alloc"]
-alloc = []
 std = []
 
 [dependencies]
