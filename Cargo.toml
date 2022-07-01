@@ -1,0 +1,35 @@
+[package]
+name = "thermal-print"
+version = "0.1.0"
+edition = "2021"
+description = "An almost fully featured, no-std-compatible embedded-hal driver for the CSN-A2 thermal printer"
+license = "GPL-3.0+"
+readme = "README.md"
+documentation = "https://docs.rs/thermal-print"
+repository = "https://github.com/doesnotcompete/thermal-print"
+categories = ["embedded", "hardware-support", "no-std"]
+keywords = ["thermal-printer", "embedded-hal-driver", "no-std", "serial", "adafruit"]
+
+[features]
+# Linking against the standard library is disabled by default
+#default = ["alloc"]
+alloc = []
+std = []
+
+[dependencies]
+embedded-hal = "0.2"
+tinybmp = "0.3.3"
+nb = "1.0.0"
+
+[dependencies.derive_builder]
+version = "0.11.2"
+default-features = false
+
+[dependencies.num_enum]
+version = "0.5.7"
+default-features = false
+
+[dependencies.bitvec]
+version = "1.0.0"
+default-features = false
+features = ["alloc"]
