@@ -26,7 +26,12 @@ Now you can bring the crate into scope:
 use thermal_print::*
 ```
 
-## Example
+Bitmap printing depends on the [TinyBMP](https://crates.io/crates/tinybmp) crate. See the example on [Printing Bitmaps] below.
+
+## Examples
+### Setup, Formatting, and Printing Text
+This example initializes the printer, configures font `B`, sets the justification to center and prints `Hello, world!` onto the paper.
+
 ```
   // Configure the serial interface for your platform
   let config = serial::config::Config::default()
@@ -56,6 +61,20 @@ use thermal_print::*
   printer.set_justification(Justification::Center);
 
   writeln!(printer, "Hello, world!");
+```
+
+### Printing Bitmaps
+This example prints a bitmap embedded via the `include_bytes!` macro. It assumes you have added `tinybmp` as a dependency to your manifest, and that a suitable bitmap file `./resources/ferris.bmp` is present in your project. See the documentation on further information on bitmap printing.
+
+```
+use tinybmp::RawBmp;
+
+printer.print_bitmap(
+  RawBmp::from_slice(
+    include_bytes!("../resources/ferris.bmp")
+  ).unwrap(),
+  RasterBitImageMode::Normal
+);
 ```
 
 ## Feature Flags
